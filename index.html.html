@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আমার প্রোডাক্ট ক্যাটালগ</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        .category { background-color: #007bff; color: white; padding: 12px; margin-top: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .products { display: none; padding: 10px; border-left: 2px solid #007bff; margin-left: 10px; }
+        .product-item { display: flex; align-items: center; background: #f9f9f9; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .product-item img { width: 60px; height: 60px; object-fit: cover; border-radius: 5px; margin-right: 15px; }
+        .product-info h4 { margin: 0; color: #333; }
+        .product-info p { margin: 5px 0 0; color: #28a745; font-weight: bold; }
+        
+        /* Admin Section */
+        .admin-toggle { text-align: center; margin-top: 30px; color: #888; font-size: 14px; cursor: pointer; text-decoration: underline; }
+        .admin-panel { display: none; margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba; }
+        input, select, button { width: 100%; padding: 10px; margin-top: 8px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { background-color: #28a745; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🛍️ আমার স্টোর</h2>
+    
+    <div id="catalog">
+        <!-- Categories and products will load here -->
+    </div>
+
+    <div class="admin-toggle" onclick="toggleAdmin()">অ্যাডমিন প্যানেল খুলুন (লুকানো)</div>
+    
+    <div class="admin-panel" id="adminPanel">
+        <h3 style="margin-top:0;">নতুন প্রোডাক্ট অ্যাড করুন</h3>
+        <input type="password" id="adminPass" placeholder="পাসওয়ার্ড দিন (যেমন: 1234)">
+        <button id="loginBtn" onclick="checkPassword()">লগইন</button>
+
+        <div id="addProductForm" style="display: none;">
+            <input type="text" id="pName" placeholder="প্রোডাক্টের নাম">
+            <input type="number" id="pPrice" placeholder="দাম (TK)">
+            <input type="text" id="pCategory" placeholder="ক্যাটাগরির নাম (যেমন: শার্ট, গ্যাজেট)">
+            <label style="display:block; margin-top:10px; font-size:14px;">প্রোডাক্টের ছবি সিলেক্ট করুন (ফোন থেকে):</label>
+            <input type="file" id="pImage" accept="image/*">
+            <button onclick="saveProduct()">প্রোডাক্ট সেভ করুন</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let products = JSON.parse(localStorage.getItem('myProductsData')) || [];
+
+    function renderCatalog() {
+        const catalogDiv = document.getElementById('catalog');
+        catalogDiv.innerHTML = '';
+        
+        if (products.length === 0) {
+            catalogDiv.innerHTML = '<p style="text-align:center; color:#777;">এখনও কোনো প্রোডাক্ট যোগ করা হয়নি।</p>';
+            return;
+        }
+
+        const categories = [...new Set(products.map(p => p.category))];
+
+        categories.forEach(cat => {
+            const catDiv = document.createElement('div');
+            catDiv.className = 'category';
+            catDiv.innerText = '📁 ' + cat;
+            
+            const prodContainer = document.createElement('div');
+            prodContainer.className = 'products';
+
+            const catProducts = products.filter(p => p.category === cat);
+            catProducts.forEach(p => {
+                const pDiv = document.createElement('div');
+                pDiv.className = 'product-item';
+                pDiv.innerHTML = `
+                    <img src="${p.image || 'https://via.placeholder.com/60'}" alt="product">
+                    <div class="product-info">
+                        <h4>${p.name}</h4>
+                        <p>৳ ${p.price}</p>
+                    </div>
+                `;
+                prodContainer.appendChild(pDiv);
+            });
+
+            catDiv.onclick = () => {
+                prodContainer.style.display = prodContainer.style.display === 'block' ? 'none' : 'block';
+            };
+
+            catalogDiv.appendChild(catDiv);
+            catalogDiv.appendChild(prodContainer);
+        });
+    }
+
+    function toggleAdmin() {
+        const panel = document.getElementById('adminPanel');
+        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function checkPassword() {
+        const pass = document.getElementById('adminPass').value;
+        if(pass === '1234') { 
+            document.getElementById('addProductForm').style.display = 'block';
+            document.getElementById('adminPass').style.display = 'none';
+            document.getElementById('loginBtn').style.display = 'none';
+        } else {
+            alert('ভুল পাসওয়ার্ড!');
+        }
+    }
+
+    function saveProduct() {
+        const name = document.getElementById('pName').value;
+        const price = document.getElementById('pPrice').value;
+        const category = document.getElementById('pCategory').value;
+        const imageFile = document.getElementById('pImage').files[0];
+
+        if(!name || !price || !category) {
+            alert('অনুগ্রহ করে নাম, দাম এবং ক্যাটাগরি দিন!');
+            return;
+        }
+
+        let reader = new FileReader();
+        reader.onload = function(event) {
+            const newProduct = {
+                name: name,
+                price: price,
+                category: category,
+                image: event.target.result 
+            };
+            
+            products.push(newProduct);
+            localStorage.setItem('myProductsData', JSON.stringify(products));
+            
+            alert('প্রোডাক্ট সফলভাবে যোগ করা হয়েছে!');
+            
+            document.getElementById('pName').value = '';
+            document.getElementById('pPrice').value = '';
+            document.getElementById('pCategory').value = '';
+            document.getElementById('pImage').value = '';
+            
+            renderCatalog();
+        };
+
+        if(imageFile) {
+            reader.readAsDataURL(imageFile);
+        } else {
+            products.push({ name, price, category, image: '' });
+            localStorage.setItem('myProductsData', JSON.stringify(products));
+            alert('প্রোডাক্ট সফলভাবে যোগ করা হয়েছে! (ছবি ছাড়া)');
+            renderCatalog();
+        }
+    }
+
+    renderCatalog();
+</script>
+</body>
+</html>
